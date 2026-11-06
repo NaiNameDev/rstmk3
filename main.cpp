@@ -12,13 +12,17 @@ Engine::Engine engine;
 // shaders
 //global vars
 float u_time = 0.0f;
-FORCE_INLINE uint32_t frag(const Engine::triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
+FORCE_INLINE uint32_t rainbow(const Engine::triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
 	return Engine::vec4_to_color(Engine::bary_interpolate_color(weights, glm::vec4(0,0,1,1), glm::vec4(0,1,0,1), glm::vec4(1,0,0,1)));
+}
+FORCE_INLINE uint32_t flat(const Engine::triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
+	return 0xFFFFFFFF;
 }
 glm::vec3 vert(const glm::vec3& point) {
 	return point;
 }
-auto f1 = GEN_FRAGMENT(frag);
+auto f1 = GEN_FRAGMENT(rainbow);
+auto f2 = GEN_FRAGMENT(flat);
 
 void on_ready() {
 	Engine::fragment = f1;
