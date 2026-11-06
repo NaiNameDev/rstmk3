@@ -71,43 +71,51 @@ FORCE_INLINE void calc_line(glm::ivec2 p1, glm::ivec2 p2, int16_t min_y, std::ve
 	}
 } 
 
-FORCE_INLINE void fill_area(const triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y) {
-	for (int i = 0; i < area.size(); i++) {
-		int length = area[i][MAX] - area[i][MIN] + 1;
+#define GEN_FRAGMENT(FRAG)\
+	std::function<void(const Engine::triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y)>\
+	([](const Engine::triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y) {\
+	for (int i = 0; i < area.size(); i++) {\
+		int length = area[i][MAX] - area[i][MIN] + 1;\
+\
+		if (length == 0) {\
+			glm::ivec2 pos = glm::ivec2(area[i][MIN], min_y + i);\
+			glm::vec3 weights = Engine::bary_weights(trg, pos);\
+			float depth = Engine::bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);\
+\
+			if (Engine::get_depth_pixel(pos.x, pos.y) < depth) {\
+				Engine::set_pixel(pos.x, pos.y, FRAG(trg, weights, glm::vec3(pos.x, pos.y, depth)));\
+				Engine::set_depth_pixel(pos.x, pos.y, depth);\
+			}\
+			continue;\
+		}\
+		for (int j = 0; j < length; j++) {\
+			glm::ivec2 pos = glm::ivec2(area[i][MIN] + j, min_y + i);\
+			glm::vec3 weights = Engine::bary_weights(trg, pos);\
+			float depth = Engine::bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);\
+\
+			if (Engine::get_depth_pixel(pos.x, pos.y) < depth) {\
+				Engine::set_pixel(pos.x, pos.y, FRAG(trg, weights, glm::vec3(pos.x, pos.y, depth)));\
+				Engine::set_depth_pixel(pos.x, pos.y, depth);\
+			}\
+		}\
+	}\
+})
 
-		// FRAGMENT "SHADER" CALLS
-		if (length == 0) {
-			glm::ivec2 pos = glm::ivec2(area[i][MIN], min_y + i);
-			glm::vec3 weights = bary_weights(trg, pos);
-			float depth = bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);
-
-			if (get_depth_pixel(pos.x, pos.y) < depth) {
-				set_pixel(pos.x, pos.y, FRAG(trg, weights, glm::vec3(pos.x, pos.y, depth)));
-				set_depth_pixel(pos.x, pos.y, depth);
-			}
-			continue;
-		}
-		for (int j = 0; j < length; j++) {
-			glm::ivec2 pos = glm::ivec2(area[i][MIN] + j, min_y + i);
-			glm::vec3 weights = bary_weights(trg, pos);
-			float depth = bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);
-
-			if (get_depth_pixel(pos.x, pos.y) < depth) {
-				set_pixel(pos.x, pos.y, FRAG(trg, weights, glm::vec3(pos.x, pos.y, depth)));
-				set_depth_pixel(pos.x, pos.y, depth);
-			}
-		}
+FORCE_INLINE void full_culling(const std::vector<triangle>& draw) {
+	for (auto& trg : draw) {
+		
 	}
 }
 
 FORCE_INLINE void rasterize(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 norm) {
 	std::vector<triangle> draw;
-	// form 3d to clipspace
-	p1 = VERT(p1); p2 = VERT(p2); p3 = VERT(p3);
+	p1 = vertex(p1); p2 = vertex(p2); p3 = vertex(p3);
 	triangle ftrg = (triangle){p1, p2, p3, p1.z, p2.z, p3.z, norm};
 	draw.push_back(ftrg);
 
-	// add culling here :3
+	// viewport backface culling
+	if (glm::cross(glm::vec3(ftrg.p2, 0.0f) - glm::vec3(ftrg.p1, 0.0f), glm::vec3(ftrg.p3, 0.0f) - glm::vec3(ftrg.p1, 0.0f)).z <= 0.0f) return;
+	full_culling(draw);
 
 	// draw
 	for (auto& trg : draw) {
@@ -120,6 +128,6 @@ FORCE_INLINE void rasterize(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 
 		calc_line(trg.p2, trg.p3, min, triangle_area);
 		calc_line(trg.p3, trg.p1, min, triangle_area);
 		
-		fill_area(trg, triangle_area, min);
+		fragment(trg, triangle_area, min);
 	}
 }

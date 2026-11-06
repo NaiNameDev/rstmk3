@@ -5,33 +5,41 @@
 #include <engine/scene.hpp>
 
 #include <engine/rasterizer.hpp>
-namespace Engine { // bro i hate ts shit so much, butt with this i got +200 fps :3
-#define FRAG _frag
-#define VERT _vert
-
-// place for your ((ads)) uniforms
-
-FORCE_INLINE uint32_t _frag(const triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
-	return vec4_to_color(bary_interpolate_color(weights, glm::vec4(0,0,1,1), glm::vec4(0,1,0,1), glm::vec4(1,0,0,1)));
-}
-FORCE_INLINE glm::vec3 _vert(const glm::vec3& vertex) {
-	return vertex;
-}
-
-#include <engine/rasterizer.inl>
-};
-
 #include <engine/framebuffer.hpp>
 
 Engine::Engine engine;
 
+// shaders
+//global vars
+float u_time = 0.0f;
+FORCE_INLINE uint32_t frag(const Engine::triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
+	return Engine::vec4_to_color(Engine::bary_interpolate_color(weights, glm::vec4(0,0,1,1), glm::vec4(0,1,0,1), glm::vec4(1,0,0,1)));
+}
+glm::vec3 vert(const glm::vec3& point) {
+	return point;
+}
+auto f1 = GEN_FRAGMENT(frag);
+
 void on_ready() {
+	Engine::fragment = f1;
+	Engine::vertex = vert;
 	std::cout << "start!\n";
 }
 void process(float delta) {
 	Engine::clear_buffers();
 
-	Engine::rasterize(glm::vec3(0,0,2), glm::vec3(1919,0,2), glm::vec3(1919,1079,2), glm::vec3(0,0,0));
+	u_time = glfwGetTime();
+	//Engine::rasterize(glm::vec3(100, 200, 1), glm::vec3(100, 100, 1), glm::vec3(200, 150, 1),  glm::vec3(0,0,0));
+	Engine::rasterize(
+		glm::vec3(engine.current_scene->window.width - 1, 0,1), 
+		glm::vec3(engine.current_scene->window.width - 1, engine.current_scene->window.height - 1,1),
+		glm::vec3(0, engine.current_scene->window.height - 1,1), glm::vec3(0,0,0)
+	);
+	Engine::rasterize(
+		glm::vec3(0, 0,1), 
+		glm::vec3(engine.current_scene->window.width - 1, 0,1),
+		glm::vec3(0, engine.current_scene->window.height - 1,1), glm::vec3(0,0,0)
+	);
 
 	glDrawPixels(engine.current_scene->window.width, engine.current_scene->window.height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)Engine::fbo);
 

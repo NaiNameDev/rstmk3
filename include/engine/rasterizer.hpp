@@ -19,7 +19,9 @@ namespace Engine {
 		glm::vec3 normal;
 	};
 	
-
+	inline std::function<void(const triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y)> fragment;
+	inline std::function<glm::vec3(const glm::vec3& point)> vertex;
+	
 	FORCE_INLINE uint32_t vec4_to_color(glm::vec4 vec);
 	FORCE_INLINE glm::vec4 color_to_vec4(uint32_t color);
 
@@ -33,7 +35,9 @@ namespace Engine {
 
 	// rasterization
 	FORCE_INLINE void calc_line(glm::ivec2 p1, glm::ivec2 p2, int16_t min_y, std::vector<std::array<int16_t, 2>>& area);
-	FORCE_INLINE void fill_area(const triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y);
+	FORCE_INLINE void full_culling(const std::vector<triangle>&);
 	FORCE_INLINE void rasterize(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 norm);
+
+	#include "rasterizer.inl"
 
 };
