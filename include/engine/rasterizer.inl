@@ -72,21 +72,28 @@ FORCE_INLINE void calc_line(glm::ivec2 p1, glm::ivec2 p2, int16_t min_y, std::ve
 } 
 
 #define GEN_FRAGMENT(FRAG)\
-	std::function<void(const Engine::triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y)>\
+std::function<void(const Engine::triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y)>\
 	([](const Engine::triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y) {\
-	for (int i = min_y; i < area.size() + min_y; i++) {\
-		for (int j = area[i][MIN]; j < area[i][MAX]; j++) {\
-			glm::vec3 weights = Engine::bary_weights(trg, glm::vec2(j, i));\
-			float depth = Engine::bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);\
+		int size = area.size();\
+	 	for (int i = 0; i < size; i++) {\
+			for (int j = area[i][MIN]; j < area[i][MAX]; j++) {\
+				glm::vec3 weights = Engine::bary_weights(trg.p1, trg.p2, trg.p3, glm::vec2(j, i + min_y));\
 \
-			if (Engine::get_depth_pixel(j, i) < depth) {\
-				uint32_t col = FRAG(trg, weights, glm::vec3(j, i, depth));\
-				Engine::set_pixel(j, i, col);\
-				Engine::set_depth_pixel(j, i, depth);\
+				float depth_old = Engine::get_depth_pixel(j, i + min_y);\
+				float depth = Engine::bary_interpolate_float(weights, trg.p1d, trg.p2d, trg.p3d);\
+				uint32_t color_old = Engine::get_pixel(j, i + min_y);\
+				uint32_t color = FRAG(trg, weights, glm::vec3(j, i + min_y, depth));\
+\
+				Engine::set_pixel(j, i + min_y, color);\
+				Engine::set_depth_pixel(j, i + min_y, depth);\
+				if (depth_old > depth) {\
+					Engine::set_pixel(j, i + min_y, color_old);\
+					Engine::set_depth_pixel(j, i + min_y, depth_old);\
+				}\
 			}\
 		}\
 	}\
-})
+)
 
 FORCE_INLINE void full_culling(const std::vector<triangle>& draw) {
 	for (auto& trg : draw) {
