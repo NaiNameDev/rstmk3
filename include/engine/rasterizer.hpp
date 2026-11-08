@@ -10,6 +10,10 @@
 #define MIN 0
 #define MAX 1
 
+#define LEFT_OUT -1
+#define INSIDE 0
+#define RIGHT_OUT 1
+
 namespace Engine {
 
 	struct triangle {
@@ -28,14 +32,29 @@ namespace Engine {
 	// bary
 	FORCE_INLINE glm::vec3 bary_weights(const triangle& trg, const glm::ivec2& point);
 	FORCE_INLINE glm::vec3 bary_weights(const glm::ivec2& p1, const glm::ivec2& p2, const glm::ivec2& p3, const glm::ivec2& point);
-	FORCE_INLINE float bary_interpolate_float(const glm::vec3& weights, float a, float b, float c);
-	FORCE_INLINE glm::vec4 bary_interpolate_color(const glm::vec3& weights, const glm::vec4& a, const glm::vec4& b, const glm::vec4& c);
 	FORCE_INLINE glm::ivec2 bary_get_coord_inside(const glm::vec3& weights, const glm::ivec2& p1, const glm::ivec2& p2, const glm::ivec2& p3);
 	FORCE_INLINE glm::ivec2 bary_get_coord_inside(const glm::vec3& weights, const triangle& trg);
+	FORCE_INLINE float bary_interpolate_float(const glm::vec3& weights, float a, float b, float c);
+	FORCE_INLINE glm::vec4 bary_interpolate_color(const glm::vec3& weights, const glm::vec4& a, const glm::vec4& b, const glm::vec4& c);
+
+	// culling
+	FORCE_INLINE int is_out(int16_t point, int16_t clamp_min, int16_t clamp_max);
+	FORCE_INLINE int f_is_out(float point, float clamp_min, float clamp_max); // i hate c++ overload 
+	FORCE_INLINE glm::ivec2 colliding_point_x(glm::ivec2 p1, glm::ivec2 p2, int16_t clamp);
+	FORCE_INLINE glm::ivec2 colliding_point_y(glm::ivec2 p1, glm::ivec2 p2, int16_t clamp);
+	FORCE_INLINE glm::ivec2 colliding_point_z(glm::ivec2 p1, glm::ivec2 p2, float z1, float z2, float clamp);
+	FORCE_INLINE bool triangulate(
+		const std::vector<glm::ivec2>& out,
+		const std::vector<glm::ivec2>& in,
+		std::vector<triangle>& draw,
+		triangle base_trg,
+		int16_t limit,
+		int16_t basis
+	);
+	FORCE_INLINE void full_culling(std::vector<triangle>&, int basis);
 
 	// rasterization
 	FORCE_INLINE void calc_line(glm::ivec2 p1, glm::ivec2 p2, int16_t min_y, std::vector<std::array<int16_t, 2>>& area);
-	FORCE_INLINE void full_culling(const std::vector<triangle>&);
 	FORCE_INLINE void rasterize(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 norm);
 
 	#include "rasterizer.inl"
