@@ -9,9 +9,9 @@ namespace Engine {
 	inline int32_t* fbo;
 	inline int16_t fbo_width, fbo_height;
 	inline float* dbo;
-
+	inline float far, near;
 	
-	void init_buffers(int16_t x, int16_t y);
+	void init_buffers(int16_t x, int16_t y, float near, float far);
 	void free_buffers();
 
 	FORCE_INLINE void clear_buffers();

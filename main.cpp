@@ -10,7 +10,7 @@
 Engine::Engine engine;
 
 // shaders
-//global vars
+// global vars
 float u_time = 0.0f;
 uint32_t flat_color = 0xFFFFFFFF;
 FORCE_INLINE uint32_t rainbow(const Engine::triangle& trg, const glm::vec3& weights, const glm::vec3& fragcoord) {
@@ -21,7 +21,7 @@ FORCE_INLINE uint32_t overdraw(const Engine::triangle& trg, const glm::vec3& wei
 	return 0xFFFFFFFF;
 }
 glm::vec3 vert_sin(const glm::vec3& point) {
-	return point + glm::vec3(cos(u_time/ 1.0f) * 1080.0f, sin(u_time / 1.0f) * 1080.0f, 0.0f);
+	return point + glm::vec3(0.0f, 0.0f, sin(u_time / 1.0f) * 3.0f);
 }
 glm::vec3 vert_static(const glm::vec3& point) {
 	return point;
@@ -32,32 +32,31 @@ auto f2 = GEN_FRAGMENT(overdraw);
 
 
 void on_ready() {
-	Engine::fragment = f2;
+	Engine::init_buffers(engine.current_scene->window.width, engine.current_scene->window.height, 0.1f, 100.0f);
+	
+	Engine::fragment = f1;
 	std::cout << "start!\n";
 }
 void process(float delta) {
-	Engine::clear_buffers();
+	Engine::clear_buffers(0xFFAACC88);
 
 	Engine::vertex = vert_sin;
 	u_time = glfwGetTime();
 	Engine::rasterize(
-		glm::vec3(engine.current_scene->window.width - 1, 0, 2), 
-		glm::vec3(engine.current_scene->window.width - 1, engine.current_scene->window.height - 1, 2),
-		glm::vec3(0, engine.current_scene->window.height - 1, 2), glm::vec3(1,1,1),
-		0.5f, 20.0f
+		glm::vec3(engine.current_scene->window.width - 1, 0, 3), 
+		glm::vec3(engine.current_scene->window.width - 1, engine.current_scene->window.height - 1, 1),
+		glm::vec3(0, engine.current_scene->window.height - 1, 2), glm::vec3(1,1,1)
 	);
 	Engine::rasterize(
-		glm::vec3(0, 0,1), 
-		glm::vec3(engine.current_scene->window.width - 1, 0,1),
-		glm::vec3(0, engine.current_scene->window.height - 1,1), glm::vec3(0,0,0),
-		0.5f, 20.0f
+		glm::vec3(0, 0, 1), 
+		glm::vec3(engine.current_scene->window.width - 1, 0, 1),
+		glm::vec3(0, engine.current_scene->window.height - 1,3), glm::vec3(0,0,0)
 	);
 	/*Engine::rasterize(
 		glm::vec3(100, 200, 2),
 		glm::vec3(100, 100, 2),
 		glm::vec3(200, 150, 2), 
 		glm::vec3(0,0,0),
-		0.5f, 20.0f
 	);*/
 
 	glDrawPixels(engine.current_scene->window.width, engine.current_scene->window.height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)Engine::fbo);
@@ -72,7 +71,6 @@ void on_quit() {
 
 int main() {
 	engine.change_scene(new Engine::Scene(1920, 1080, "main scene window"));
-	Engine::init_buffers(engine.current_scene->window.width, engine.current_scene->window.height);
 
 	engine.ready_signal.connect(on_ready);
 	engine.process_signal.connect(process);
