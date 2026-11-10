@@ -27,7 +27,7 @@ namespace Engine {
 	};
 
 	inline std::function<void(const triangle& trg, const std::vector<std::array<int16_t, 2>>& area, int16_t min_y)> fragment;
-	inline std::function<glm::vec3(const glm::vec3& point)> vertex;
+	inline std::function<glm::vec3(glm::vec3 point)> vertex;
 	
 	FORCE_INLINE uint32_t vec4_to_color(glm::vec4 vec);
 	FORCE_INLINE glm::vec4 color_to_vec4(uint32_t color);

@@ -64,7 +64,7 @@ FORCE_INLINE bool triangulate(
 	float clamp,
 	int8_t basis
 ) {
-	if (out.size() == 1) {
+	if (out.size() == 1 && in.size() == 2) {
 		triangle new_trg1 = base_trg;
 		triangle new_trg2 = base_trg;
 		
@@ -94,7 +94,7 @@ FORCE_INLINE bool triangulate(
 		
 		return true;
 	}
-	if (out.size() == 2) {
+	if (out.size() == 2 && in.size() == 1) {
 		triangle new_trg = base_trg;
 		
 		if (basis == 0) {
@@ -130,8 +130,9 @@ FORCE_INLINE void full_culling(std::vector<triangle>& draw, int basis) {
 		std::vector<vertice> left_in_points, right_in_points;
 		for (int j = 0; j < 3; j++) {
 			int status;
-			if (basis == 0) status = is_out(base_trg.vertices[j].pos.x, 0, fbo_width);
-			if (basis == 1) status = is_out(base_trg.vertices[j].pos.y, 0, fbo_height);
+			if (basis == 0) status = is_out(base_trg.vertices[j].pos.x, 0, fbo_width - 1);
+			if (basis == 1) status = is_out(base_trg.vertices[j].pos.y, 0, fbo_height - 1);
+			if (basis == 2) status = is_out(base_trg.vertices[j].depth, near, far);
 			
 			if (status == INSIDE) {
 				left_in_points.push_back(base_trg.vertices[j]);
@@ -155,15 +156,15 @@ FORCE_INLINE void full_culling(std::vector<triangle>& draw, int basis) {
 
 		if (basis == 0) {
 			if (triangulate(left_out_points, left_in_points, draw, base_trg, 0, basis)) continue;
-			if (triangulate(right_out_points, right_in_points, draw, base_trg, fbo_width, basis)) continue;
+			if (triangulate(right_out_points, right_in_points, draw, base_trg, fbo_width - 1, basis)) continue;
 		}
 		if (basis == 1) {
 			if (triangulate(left_out_points, left_in_points, draw, base_trg, 0, basis)) continue;
-			if (triangulate(right_out_points, right_in_points, draw, base_trg, fbo_height, basis)) continue;
+			if (triangulate(right_out_points, right_in_points, draw, base_trg, fbo_height - 1, basis)) continue;
 		}
 		if (basis == 2) {
-			if (triangulate(left_out_points, left_in_points, draw, base_trg, near, basis)) continue;
-			if (triangulate(right_out_points, right_in_points, draw, base_trg, far, basis)) continue;
+			if (triangulate(left_out_points, left_in_points, draw, base_trg, near + 0.01f, basis)) continue;
+			if (triangulate(right_out_points, right_in_points, draw, base_trg, far - 0.01f, basis)) continue;
 		}
 	}
 }
@@ -208,7 +209,7 @@ std::function<void(const Engine::triangle& trg, const std::vector<std::array<int
 \
 				Engine::set_pixel(j, i + min_y, color);\
 				Engine::set_depth_pixel(j, i + min_y, depth);\
-				if (depth_old > depth) {\
+				if (depth_old < depth) {\
 					Engine::set_pixel(j, i + min_y, color_old);\
 					Engine::set_depth_pixel(j, i + min_y, depth_old);\
 				}\
@@ -224,31 +225,32 @@ FORCE_INLINE void rasterize(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 
 	draw.push_back(ftrg);
 
 	// backface culling
-	if (glm::cross(glm::vec3(ftrg.vertices[1].pos, 0.0f) - glm::vec3(ftrg.vertices[0].pos, 0.0f), glm::vec3(ftrg.vertices[2].pos, 0.0f) - glm::vec3(ftrg.vertices[0].pos, 0.0f)).z <= 0.0f) return;
+	if (glm::cross(glm::vec3(ftrg.vertices[1].pos, 0.0f) - glm::vec3(ftrg.vertices[0].pos, 0.0f),
+	    		   glm::vec3(ftrg.vertices[2].pos, 0.0f) - glm::vec3(ftrg.vertices[0].pos, 0.0f)).z <= 0.0f) {
+		return;
+	}
 	
 	//easy culling
-	glm::ivec2 points[3] = { ftrg.vertices[0].pos, ftrg.vertices[1].pos, ftrg.vertices[2].pos };
-	float points_z[3] = { ftrg.vertices[0].depth, ftrg.vertices[1].depth, ftrg.vertices[2].depth };
-	
 	int out_points[3];
 	bool do_hard_x = true, do_hard_y = true, do_hard_z = true;
-	for (int j = 0; j < 3; j++) out_points[j] = is_out(points[j].x, 200, fbo_width - 200);
+	for (int j = 0; j < 3; j++) out_points[j] = is_out(ftrg.vertices[j].pos.x, 0, fbo_width - 1);
 	if (out_points[0] == INSIDE && out_points[1] == INSIDE && out_points[2] == INSIDE) do_hard_x = false;
 	if (out_points[0] == LEFT_OUT && out_points[1] == LEFT_OUT && out_points[2] == LEFT_OUT) return;
 	if (out_points[0] == RIGHT_OUT && out_points[1] == RIGHT_OUT && out_points[2] == RIGHT_OUT) return;
 	
-	for (int j = 0; j < 3; j++) out_points[j] = is_out(points[j].y, 200, fbo_height - 200);
+	for (int j = 0; j < 3; j++) out_points[j] = is_out(ftrg.vertices[j].pos.y, 0, fbo_height - 1);
 	if (out_points[0] == INSIDE && out_points[1] == INSIDE && out_points[2] == INSIDE) do_hard_y = false;
 	if (out_points[0] == LEFT_OUT && out_points[1] == LEFT_OUT && out_points[2] == LEFT_OUT) return;
 	if (out_points[0] == RIGHT_OUT && out_points[1] == RIGHT_OUT && out_points[2] == RIGHT_OUT) return;
 	
-	for (int j = 0; j < 3; j++) out_points[j] = is_out(points_z[j], near, far);
+	for (int j = 0; j < 3; j++) out_points[j] = is_out(ftrg.vertices[j].depth, near, far);
 	if (out_points[0] == INSIDE && out_points[1] == INSIDE && out_points[2] == INSIDE) do_hard_z = false;
 	if (out_points[0] == LEFT_OUT && out_points[1] == LEFT_OUT && out_points[2] == LEFT_OUT) return;
 	if (out_points[0] == RIGHT_OUT && out_points[1] == RIGHT_OUT && out_points[2] == RIGHT_OUT) return;
 	
 	// hard culling
 	if (do_hard_z) {
+		return;
 		full_culling(draw, 2);
 	}
 	if (do_hard_y) {

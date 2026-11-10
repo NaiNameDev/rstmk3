@@ -1,4 +1,4 @@
-void init_buffers(int16_t x, int16_t y, float new_near, float new_far) {
+FORCE_INLINE void init_buffers(int16_t x, int16_t y, float new_near, float new_far) {
 	fbo = (int32_t*)malloc(sizeof(int32_t) * x * y);
 	dbo = (float*)malloc(sizeof(float) * x * y);
 	
@@ -8,7 +8,7 @@ void init_buffers(int16_t x, int16_t y, float new_near, float new_far) {
 	near = new_near;
 	far = new_far;
 }
-void free_buffers() {
+FORCE_INLINE void free_buffers() {
 	free(fbo);
 	free(dbo);
 	fbo = nullptr;
@@ -20,7 +20,7 @@ FORCE_INLINE void clear_buffers(const int32_t& clear) {
 	//std::memset(dbo, 0, fbo_width * fbo_height * sizeof(float));
 	for (int i = 0; i < fbo_width * fbo_height; i++) {
 		fbo[i] = clear;
-		dbo[i] = near;
+		dbo[i] = far;
 	}
 }
 

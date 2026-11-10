@@ -11,8 +11,8 @@ namespace Engine {
 	inline float* dbo;
 	inline float far, near;
 	
-	void init_buffers(int16_t x, int16_t y, float near, float far);
-	void free_buffers();
+	FORCE_INLINE void init_buffers(int16_t x, int16_t y, float near, float far);
+	FORCE_INLINE void free_buffers();
 
 	FORCE_INLINE void clear_buffers();
 
